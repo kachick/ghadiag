@@ -1,0 +1,42 @@
+{
+  "name": "ghadiag",
+  "version": "0.1.0",
+  "description": "A standalone GitHub Actions workflow and action validator powered by official @actions/languageservice",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kachick/ghadiag.git"
+  },
+  "license": "MIT",
+  "author": "Kenichi Kamiya <kachick1@gmail.com>",
+  "type": "module",
+  "bin": {
+    "ghadiag": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "rm -rf ./dist",
+    "build": "node esbuild.config.ts",
+    "typecheck": "tsc",
+    "test": "tsx --test",
+    "fmt": "dprint fmt",
+    "lint": "node scripts/lint.ts",
+    "check_no_git_diff": "(git add --intent-to-add . && git diff --exit-code) || (echo 'You should commit all diff before running tests'; exit 1)",
+    "check": "pnpm run typecheck && pnpm run test && pnpm run lint && pnpm run build",
+    "all": "pnpm run check"
+  },
+  "dependencies": {
+    "@actions/languageservice": "^0.3.61",
+    "vscode-languageserver-textdocument": "^1.0.15"
+  },
+  "devDependencies": {
+    "@tsconfig/bases": "^1.0.28",
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15"
+  },
+  "engines": {
+    "node": ">=26.x"
+  }
+}

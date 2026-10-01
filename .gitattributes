@@ -1,0 +1,2 @@
+.envrc -linguist-detectable
+dist/cli.js linguist-generated=true

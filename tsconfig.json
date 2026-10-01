@@ -1,0 +1,10 @@
+{
+  "extends": ["@tsconfig/bases/strictest", "@tsconfig/bases/node24", "@tsconfig/bases/node-ts"],
+  "compilerOptions": {
+    "noEmit": true,
+    "noUnusedLocals": false,
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}

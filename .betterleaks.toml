@@ -1,0 +1,10 @@
+title = "ghadiag Betterleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignore false positive non-empty-string schema definition in @actions/languageservice"
+regexes = [
+  '''non-empty-string''',
+]

@@ -1,0 +1,7 @@
+name: Sample Action
+description: A sample composite action
+runs:
+  using: composite
+  steps:
+    - run: echo "Running composite action"
+      shell: bash

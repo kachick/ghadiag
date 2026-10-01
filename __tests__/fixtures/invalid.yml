@@ -1,0 +1,8 @@
+name: Invalid Workflow
+on: push
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploying"
+        if: secrets.DEPLOY_TOKEN != ''
