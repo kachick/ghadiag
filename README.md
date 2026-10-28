@@ -70,6 +70,6 @@ Invalid workflows and actions get rejected by GitHub before starting any checks.
 
 This project started in 2024 as an idea in a private repository. Agentic coding now makes maintaining small tools much easier, so it was cleaned up and open-sourced in 2026.
 
-`ghadiag` is only a thin wrapper around `@actions/languageservice`, but that is where its true value lies. Even if a third-party builds a faster tool with a custom parser, this wrapper remains the preferred choice because it relies directly on GitHub's official engine.
+`ghadiag` is only a thin wrapper around `@actions/languageservice`, but that is where its true value lies. Even if a third-party builds a faster tool with a custom parser, the author will likely stick with this wrapper because it relies directly on GitHub's official engine.
 
 However, if GitHub or related official teams (such as `@actions` or `@octocat`) release a first-party tool with these features, maintenance will stop and this repository will be archived.
