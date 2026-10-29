@@ -41,9 +41,7 @@
                 nixd
 
                 nodejs_26
-                (pnpm_10.override {
-                  withNode = false;
-                })
+                pnpm_12
                 typescript
                 oxlint
                 dprint
