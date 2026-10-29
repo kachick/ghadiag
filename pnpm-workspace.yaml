@@ -1,5 +1,5 @@
-ignoredBuiltDependencies:
-  - esbuild
+allowBuilds:
+  esbuild: false
 
 minimumReleaseAge: 4320 # Minutes. 3 x day(1440)s
 minimumReleaseAgeExclude:
