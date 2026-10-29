@@ -15,7 +15,7 @@ pnpm dlx github:kachick/ghadiag
 ## Usage
 
 ```bash
-# Validate default files (.github/workflows/**/*.{yml,yaml} and action.{yml,yaml})
+# Validate default files (.github/workflows/*.{yml,yaml}, .github/actions/**/action.{yml,yaml}, and action.{yml,yaml})
 ghadiag
 
 # Output JSON (useful for LLMs and scripts), for specific files

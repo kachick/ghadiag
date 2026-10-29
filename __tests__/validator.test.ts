@@ -133,4 +133,20 @@ runs:
     assert.equal(actionResult.isValid, true);
     assert.equal(actionResult.diagnostics.length, 0);
   });
+
+  it('validates nested composite action paths and keeps relative filePath', async () => {
+    const yaml = `
+name: Nested Action
+description: A nested composite action
+runs:
+  using: composite
+  steps:
+    - run: echo "Hello"
+`;
+    const result = await validateContent('.github/actions/my-action/action.yml', yaml);
+    assert.equal(result.isValid, false);
+    assert.equal(result.filePath, '.github/actions/my-action/action.yml');
+    const messages = result.diagnostics.map((d) => d.message);
+    assert.ok(messages.some((m) => m.includes('Required property is missing: shell')));
+  });
 });

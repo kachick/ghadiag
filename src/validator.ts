@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { validate } from '@actions/languageservice';
 import { clearCacheEntry } from '@actions/languageservice/utils/workflow-cache';
@@ -50,7 +51,7 @@ export async function validateFile(filePath: string): Promise<ValidationResult> 
  * Validates content for a given file path.
  */
 export async function validateContent(filePath: string, content: string): Promise<ValidationResult> {
-  const uri = pathToFileURL(filePath).toString();
+  const uri = pathToFileURL(resolve(filePath)).toString();
   clearCacheEntry(uri);
   const document = TextDocument.create(uri, 'yaml', 0, content);
 

@@ -18,7 +18,13 @@ function runCli(args: string[], options: { stdio?: ('ignore' | 'pipe')[] } = {})
 describe('CLI executable', () => {
   it('exits with 0 on valid workflow', () => {
     const stdout = runCli([VALID_FIXTURE]);
-    assert.ok(stdout.includes('0 error(s), 0 warning(s)'));
+    assert.equal(stdout.trim(), 'Validated 1 file(s): 0 error(s), 0 warning(s)');
+  });
+
+  it('discovers default workflow files with relative paths when no arguments are passed', () => {
+    const stdout = runCli(['--format=json']);
+    const parsed = JSON.parse(stdout) as { filePath: string; isValid: boolean }[];
+    assert.ok(parsed.some((r) => r.filePath === '.github/workflows/ci.yml' && r.isValid));
   });
 
   it('exits with 0 on valid action fixture', () => {

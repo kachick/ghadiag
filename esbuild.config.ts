@@ -9,7 +9,7 @@ await build({
   outfile: 'dist/cli.js',
   bundle: true,
   format: 'esm',
-  target: 'node26',
+  target: 'node24',
   platform: 'node',
   banner: {
     js: `#!/usr/bin/env node\n${bannerText}`,

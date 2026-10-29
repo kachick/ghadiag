@@ -1,6 +1,7 @@
 import { existsSync, globSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import packageJson from '../package.json' with { type: 'json' };
 import { formatHuman, validateFile, type ValidationResult } from './validator.ts';
 
 const HELP_TEXT = `ghadiag - Validate GitHub Actions workflows and actions
@@ -15,23 +16,23 @@ Options:
 
 If no files are specified, ghadiag checks:
   - .github/workflows/*.{yml,yaml}
-  - .github/workflows/**/*.{yml,yaml}
+  - .github/actions/**/action.{yml,yaml}
   - action.{yml,yaml}
 `;
 
-function findDefaultFiles(): string[] {
+function findDefaultFiles(cwd: string = process.cwd()): string[] {
   const files: string[] = [];
 
-  const workflowPatterns = [
+  const globPatterns = [
     '.github/workflows/*.yml',
     '.github/workflows/*.yaml',
-    '.github/workflows/**/*.yml',
-    '.github/workflows/**/*.yaml',
+    '.github/actions/**/action.yml',
+    '.github/actions/**/action.yaml',
   ];
 
-  for (const pattern of workflowPatterns) {
+  for (const pattern of globPatterns) {
     try {
-      const matched = globSync(pattern);
+      const matched = globSync(pattern, { cwd });
       files.push(...matched);
     } catch {
       // Ignore glob errors if directory does not exist
@@ -40,13 +41,22 @@ function findDefaultFiles(): string[] {
 
   const actionFiles = ['action.yml', 'action.yaml'];
   for (const actionFile of actionFiles) {
-    if (existsSync(actionFile)) {
+    if (existsSync(resolve(cwd, actionFile))) {
       files.push(actionFile);
     }
   }
 
-  // De-duplicate paths
-  return Array.from(new Set(files.map((f) => resolve(process.cwd(), f))));
+  // De-duplicate while keeping readable relative paths
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const file of files) {
+    const abs = resolve(cwd, file);
+    if (!seen.has(abs)) {
+      seen.add(abs);
+      result.push(relative(cwd, abs));
+    }
+  }
+  return result.toSorted();
 }
 
 async function main() {
@@ -74,7 +84,7 @@ async function main() {
   }
 
   if (values.version) {
-    console.log('0.1.0');
+    console.log(packageJson.version);
     process.exit(0);
   }
 
@@ -139,8 +149,9 @@ async function main() {
   if (format === 'json') {
     console.log(JSON.stringify(results, null, 2));
   } else if (format === 'human') {
+    const prefix = totalErrors > 0 || totalWarnings > 0 ? '\n' : '';
     console.log(
-      `\nValidated ${targetFiles.length} file(s): ${totalErrors} error(s), ${totalWarnings} warning(s)`,
+      `${prefix}Validated ${targetFiles.length} file(s): ${totalErrors} error(s), ${totalWarnings} warning(s)`,
     );
   }
 

@@ -8452,11 +8452,56 @@ var require_cronstrue = __commonJS({
 
 // src/cli.ts
 import { existsSync, globSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve as resolve2 } from "node:path";
 import { parseArgs } from "node:util";
+
+// package.json
+var package_default = {
+  name: "ghadiag",
+  version: "0.1.0",
+  description: "A standalone GitHub Actions workflow and action validator powered by official @actions/languageservice",
+  repository: {
+    type: "git",
+    url: "git+https://github.com/kachick/ghadiag.git"
+  },
+  license: "MIT",
+  author: "Kenichi Kamiya <kachick1@gmail.com>",
+  type: "module",
+  bin: {
+    ghadiag: "./dist/cli.js"
+  },
+  files: [
+    "dist"
+  ],
+  scripts: {
+    prebuild: "rm -rf ./dist",
+    build: "node esbuild.config.ts",
+    typecheck: "tsc",
+    test: "tsx --test",
+    fmt: "dprint fmt",
+    lint: "node scripts/lint.ts",
+    check_no_git_diff: "(git add --intent-to-add . && git diff --exit-code) || (echo 'You should commit all diff before running tests'; exit 1)",
+    check: "pnpm run typecheck && pnpm run test && pnpm run lint && pnpm run build && node ./dist/cli.js",
+    all: "pnpm run check"
+  },
+  dependencies: {
+    "@actions/languageservice": "^0.3.61",
+    "vscode-languageserver-textdocument": "^1.0.15"
+  },
+  devDependencies: {
+    "@tsconfig/bases": "^1.0.28",
+    "@types/node": "^26.6.5",
+    esbuild: "^0.28.2",
+    tsx: "^4.23.15"
+  },
+  engines: {
+    node: ">=24.x"
+  }
+};
 
 // src/validator.ts
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 // node_modules/.pnpm/@actions+expressions@0.3.61/node_modules/@actions/expressions/dist/ast.js
@@ -18765,7 +18810,7 @@ async function validateFile(filePath) {
   return validateContent(filePath, content);
 }
 async function validateContent(filePath, content) {
-  const uri = pathToFileURL(filePath).toString();
+  const uri = pathToFileURL(resolve(filePath)).toString();
   clearCacheEntry(uri);
   const document = TextDocument2.create(uri, "yaml", 0, content);
   const rawDiagnostics = await validate(document);
@@ -18808,31 +18853,40 @@ Options:
 
 If no files are specified, ghadiag checks:
   - .github/workflows/*.{yml,yaml}
-  - .github/workflows/**/*.{yml,yaml}
+  - .github/actions/**/action.{yml,yaml}
   - action.{yml,yaml}
 `;
-function findDefaultFiles() {
+function findDefaultFiles(cwd = process.cwd()) {
   const files = [];
-  const workflowPatterns = [
+  const globPatterns = [
     ".github/workflows/*.yml",
     ".github/workflows/*.yaml",
-    ".github/workflows/**/*.yml",
-    ".github/workflows/**/*.yaml"
+    ".github/actions/**/action.yml",
+    ".github/actions/**/action.yaml"
   ];
-  for (const pattern of workflowPatterns) {
+  for (const pattern of globPatterns) {
     try {
-      const matched = globSync(pattern);
+      const matched = globSync(pattern, { cwd });
       files.push(...matched);
     } catch {
     }
   }
   const actionFiles = ["action.yml", "action.yaml"];
   for (const actionFile of actionFiles) {
-    if (existsSync(actionFile)) {
+    if (existsSync(resolve2(cwd, actionFile))) {
       files.push(actionFile);
     }
   }
-  return Array.from(new Set(files.map((f) => resolve(process.cwd(), f))));
+  const seen = /* @__PURE__ */ new Set();
+  const result = [];
+  for (const file of files) {
+    const abs = resolve2(cwd, file);
+    if (!seen.has(abs)) {
+      seen.add(abs);
+      result.push(relative(cwd, abs));
+    }
+  }
+  return result.toSorted();
 }
 async function main() {
   const { values, positionals } = parseArgs({
@@ -18857,7 +18911,7 @@ async function main() {
     process.exit(0);
   }
   if (values.version) {
-    console.log("0.1.0");
+    console.log(package_default.version);
     process.exit(0);
   }
   const format2 = values.format ?? "human";
@@ -18914,9 +18968,9 @@ async function main() {
   if (format2 === "json") {
     console.log(JSON.stringify(results, null, 2));
   } else if (format2 === "human") {
+    const prefix = totalErrors > 0 || totalWarnings > 0 ? "\n" : "";
     console.log(
-      `
-Validated ${targetFiles.length} file(s): ${totalErrors} error(s), ${totalWarnings} warning(s)`
+      `${prefix}Validated ${targetFiles.length} file(s): ${totalErrors} error(s), ${totalWarnings} warning(s)`
     );
   }
   if (totalErrors > 0) {
