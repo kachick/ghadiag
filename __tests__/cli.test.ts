@@ -32,6 +32,11 @@ describe('CLI executable', () => {
     assert.ok(stdout.includes('0 error(s), 0 warning(s)'));
   });
 
+  it('runs with --offline flag', () => {
+    const stdout = runCli(['--offline', VALID_FIXTURE]);
+    assert.ok(stdout.includes('0 error(s), 0 warning(s)'));
+  });
+
   it('exits with 1 on invalid workflow', () => {
     assert.throws(
       () => {

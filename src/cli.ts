@@ -2,7 +2,9 @@ import { existsSync, globSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import packageJson from '../package.json' with { type: 'json' };
-import { formatHuman, validateFile, type ValidationResult } from './validator.ts';
+import { resolveGitHubToken } from './auth.ts';
+import { createActionsMetadataProvider } from './metadata.ts';
+import { formatHuman, validateFile, type ValidationOptions, type ValidationResult } from './validator.ts';
 
 const HELP_TEXT = `ghadiag - Validate GitHub Actions workflows and actions
 
@@ -11,6 +13,7 @@ Usage:
 
 Options:
   --format <type>  Output format: human or json (default: human)
+  --offline        Run in offline mode without fetching remote action metadata
   -h, --help       Show this help message
   -v, --version    Show version
 
@@ -18,6 +21,11 @@ If no files are specified, ghadiag checks:
   - .github/workflows/*.{yml,yaml}
   - .github/actions/**/action.{yml,yaml}
   - action.{yml,yaml}
+
+Authentication:
+  In online mode, ghadiag resolves GitHub tokens from GITHUB_TOKEN or GH_TOKEN,
+  falling back to \`gh auth token\`. Without a token, unauthenticated requests
+  are made up to GitHub's public API rate limits.
 `;
 
 function findDefaultFiles(cwd: string = process.cwd()): string[] {
@@ -66,6 +74,9 @@ async function main() {
       format: {
         type: 'string',
       },
+      offline: {
+        type: 'boolean',
+      },
       help: {
         type: 'boolean',
         short: 'h',
@@ -104,10 +115,19 @@ async function main() {
     }
   }
 
+  const isOffline = values.offline ?? false;
+  const token = isOffline ? undefined : resolveGitHubToken();
+  const actionsMetadataProvider = isOffline ? undefined : createActionsMetadataProvider({ token });
+  const validationOptions: ValidationOptions = {
+    offline: isOffline,
+    token,
+    actionsMetadataProvider,
+  };
+
   const results: ValidationResult[] = await Promise.all(
     targetFiles.map(async (file) => {
       try {
-        return await validateFile(file);
+        return await validateFile(file, validationOptions);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return {

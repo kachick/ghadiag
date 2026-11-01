@@ -18,9 +18,31 @@ pnpm dlx github:kachick/ghadiag
 # Validate default files (.github/workflows/*.{yml,yaml}, .github/actions/**/action.{yml,yaml}, and action.{yml,yaml})
 ghadiag
 
+# Run in offline mode without fetching remote action metadata
+ghadiag --offline
+
 # Output JSON (useful for LLMs and scripts), for specific files
 ghadiag --format=json .github/workflows/ci.yml
 ```
+
+## Remote Actions and Authentication
+
+By default, `ghadiag` validates action inputs and required properties against remote actions (e.g. `uses: actions/checkout@v4`).
+
+To avoid GitHub API rate limits, `ghadiag` resolves a GitHub access token in this order:
+
+1. `GITHUB_TOKEN` environment variable
+2. `GH_TOKEN` environment variable
+3. Output of `gh auth token` (when GitHub CLI is installed and logged in)
+
+If no token is found, `ghadiag` falls back to unauthenticated requests within GitHub's public rate limits.
+
+### Privacy and Security
+
+- `ghadiag` only uses read-only access to fetch `action.yml` and `action.yaml` metadata.
+- Tokens are only sent to `api.github.com` in the `Authorization` header.
+- Tokens are never written to disk or logged.
+- Pass `--offline` to disable all network requests and skip token resolution.
 
 ## Why ghadiag?
 

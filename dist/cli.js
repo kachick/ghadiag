@@ -7276,7 +7276,7 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse2(src, reviver2, options) {
+    function parse3(src, reviver2, options) {
       let _reviver = void 0;
       if (typeof reviver2 === "function") {
         _reviver = reviver2;
@@ -7317,7 +7317,7 @@ var require_public_api = __commonJS({
         return value.toString(options);
       return new Document.Document(value, _replacer, options).toString(options);
     }
-    exports.parse = parse2;
+    exports.parse = parse3;
     exports.parseAllDocuments = parseAllDocuments;
     exports.parseDocument = parseDocument2;
     exports.stringify = stringify;
@@ -8320,8 +8320,8 @@ var require_cronstrue = __commonJS({
                 var RangeValidator = (function() {
                   function RangeValidator2() {
                   }
-                  RangeValidator2.secondRange = function(parse2) {
-                    var parsed = parse2.split(",");
+                  RangeValidator2.secondRange = function(parse3) {
+                    var parsed = parse3.split(",");
                     for (var i = 0; i < parsed.length; i++) {
                       if (!isNaN(parseInt(parsed[i], 10))) {
                         var second = parseInt(parsed[i], 10);
@@ -8329,8 +8329,8 @@ var require_cronstrue = __commonJS({
                       }
                     }
                   };
-                  RangeValidator2.minuteRange = function(parse2) {
-                    var parsed = parse2.split(",");
+                  RangeValidator2.minuteRange = function(parse3) {
+                    var parsed = parse3.split(",");
                     for (var i = 0; i < parsed.length; i++) {
                       if (!isNaN(parseInt(parsed[i], 10))) {
                         var minute = parseInt(parsed[i], 10);
@@ -8338,8 +8338,8 @@ var require_cronstrue = __commonJS({
                       }
                     }
                   };
-                  RangeValidator2.hourRange = function(parse2) {
-                    var parsed = parse2.split(",");
+                  RangeValidator2.hourRange = function(parse3) {
+                    var parsed = parse3.split(",");
                     for (var i = 0; i < parsed.length; i++) {
                       if (!isNaN(parseInt(parsed[i], 10))) {
                         var hour = parseInt(parsed[i], 10);
@@ -8347,8 +8347,8 @@ var require_cronstrue = __commonJS({
                       }
                     }
                   };
-                  RangeValidator2.dayOfMonthRange = function(parse2) {
-                    var parsed = parse2.split(",");
+                  RangeValidator2.dayOfMonthRange = function(parse3) {
+                    var parsed = parse3.split(",");
                     for (var i = 0; i < parsed.length; i++) {
                       if (!isNaN(parseInt(parsed[i], 10))) {
                         var dayOfMonth = parseInt(parsed[i], 10);
@@ -8356,8 +8356,8 @@ var require_cronstrue = __commonJS({
                       }
                     }
                   };
-                  RangeValidator2.monthRange = function(parse2, monthStartIndexZero) {
-                    var parsed = parse2.split(",");
+                  RangeValidator2.monthRange = function(parse3, monthStartIndexZero) {
+                    var parsed = parse3.split(",");
                     for (var i = 0; i < parsed.length; i++) {
                       if (!isNaN(parseInt(parsed[i], 10))) {
                         var month = parseInt(parsed[i], 10);
@@ -8365,8 +8365,8 @@ var require_cronstrue = __commonJS({
                       }
                     }
                   };
-                  RangeValidator2.dayOfWeekRange = function(parse2, dayOfWeekStartIndexZero) {
-                    var parsed = parse2.split(",");
+                  RangeValidator2.dayOfWeekRange = function(parse3, dayOfWeekStartIndexZero) {
+                    var parsed = parse3.split(",");
                     for (var i = 0; i < parsed.length; i++) {
                       if (!isNaN(parseInt(parsed[i], 10))) {
                         var dayOfWeek = parseInt(parsed[i], 10);
@@ -8486,7 +8486,8 @@ var package_default = {
   },
   dependencies: {
     "@actions/languageservice": "^0.3.61",
-    "vscode-languageserver-textdocument": "^1.0.15"
+    "vscode-languageserver-textdocument": "^1.0.15",
+    yaml: "^2.9.1"
   },
   devDependencies: {
     "@tsconfig/bases": "^1.0.28",
@@ -8498,6 +8499,113 @@ var package_default = {
     node: ">=24.x"
   }
 };
+
+// src/auth.ts
+import { execFileSync } from "node:child_process";
+function resolveGitHubToken() {
+  const envToken = process.env["GITHUB_TOKEN"]?.trim() || process.env["GH_TOKEN"]?.trim();
+  if (envToken) {
+    return envToken;
+  }
+  try {
+    const stdout = execFileSync("gh", ["auth", "token"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    }).trim();
+    return stdout || void 0;
+  } catch {
+    return void 0;
+  }
+}
+
+// node_modules/.pnpm/@actions+languageservice@0.3.61/node_modules/@actions/languageservice/dist/action.js
+function parseActionReference(uses) {
+  if (!uses || uses.startsWith("docker://") || uses.startsWith("./") || uses.startsWith(".\\") || uses.startsWith("$/")) {
+    return void 0;
+  }
+  const [action, ref] = uses.split("@");
+  const [owner, name, ...pathSegments] = action.split(/[\\/]/).filter((s) => s.length > 0);
+  if (!owner || !name) {
+    return void 0;
+  }
+  if (pathSegments.length === 0) {
+    return {
+      owner,
+      name,
+      ref
+    };
+  }
+  return {
+    owner,
+    name,
+    ref,
+    path: pathSegments.join("/")
+  };
+}
+function actionIdentifier(ref) {
+  if (ref.path) {
+    return `${ref.owner}/${ref.name}/${ref.ref}/${ref.path}`;
+  }
+  return `${ref.owner}/${ref.name}/${ref.ref}`;
+}
+
+// src/metadata.ts
+var import_yaml = __toESM(require_dist(), 1);
+function createActionsMetadataProvider(options = {}) {
+  const { token, customFetch = fetch } = options;
+  const cache = /* @__PURE__ */ new Map();
+  return {
+    async fetchActionMetadata(action) {
+      const key = actionIdentifier(action);
+      let promise = cache.get(key);
+      if (!promise) {
+        promise = fetchMetadataForAction(action, token, customFetch);
+        cache.set(key, promise);
+      }
+      return promise;
+    }
+  };
+}
+async function fetchManifest(action, manifestFilename, token, fetchFn = fetch) {
+  const manifestPath = action.path ? `${action.path}/${manifestFilename}` : manifestFilename;
+  const url = `https://api.github.com/repos/${action.owner}/${action.name}/contents/${manifestPath}?ref=${encodeURIComponent(action.ref)}`;
+  const headers = {
+    Accept: "application/vnd.github.raw+yaml",
+    "User-Agent": `ghadiag/${package_default.version}`,
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  try {
+    const response = await fetchFn(url, { headers });
+    if (response.status === 200) {
+      const text = await response.text();
+      const parsed = (0, import_yaml.parse)(text);
+      if (parsed && typeof parsed === "object") {
+        return { notFound: false, metadata: parsed };
+      }
+      return { notFound: false };
+    }
+    if (response.status === 404) {
+      return { notFound: true };
+    }
+    return { notFound: false };
+  } catch {
+    return { notFound: false };
+  }
+}
+async function fetchMetadataForAction(action, token, fetchFn = fetch) {
+  const ymlResult = await fetchManifest(action, "action.yml", token, fetchFn);
+  if (ymlResult.metadata) {
+    return ymlResult.metadata;
+  }
+  if (!ymlResult.notFound) {
+    return void 0;
+  }
+  const yamlResult = await fetchManifest(action, "action.yaml", token, fetchFn);
+  return yamlResult.metadata;
+}
 
 // src/validator.ts
 import { readFileSync } from "node:fs";
@@ -12474,12 +12582,12 @@ function getWorkflowSchema() {
 }
 
 // node_modules/.pnpm/@actions+workflow-parser@0.3.61/node_modules/@actions/workflow-parser/dist/workflows/yaml-object-reader.js
-var import_yaml = __toESM(require_dist(), 1);
+var import_yaml2 = __toESM(require_dist(), 1);
 var YamlObjectReader = class _YamlObjectReader {
   constructor(fileId, content) {
-    this.lineCounter = new import_yaml.LineCounter();
+    this.lineCounter = new import_yaml2.LineCounter();
     this.errors = [];
-    this.doc = (0, import_yaml.parseDocument)(content, {
+    this.doc = (0, import_yaml2.parseDocument)(content, {
       lineCounter: this.lineCounter,
       keepSourceTokens: true,
       uniqueKeys: false
@@ -12493,17 +12601,17 @@ var YamlObjectReader = class _YamlObjectReader {
   }
   *getNodes(node, aliasResolutionStack) {
     let range = this.getRange(node);
-    if ((0, import_yaml.isDocument)(node)) {
+    if ((0, import_yaml2.isDocument)(node)) {
       yield new ParseEvent(EventType.DocumentStart);
       for (const item of this.getNodes(node.contents, /* @__PURE__ */ new Set())) {
         yield item;
       }
       yield new ParseEvent(EventType.DocumentEnd);
     }
-    if ((0, import_yaml.isCollection)(node)) {
-      if ((0, import_yaml.isSeq)(node)) {
+    if ((0, import_yaml2.isCollection)(node)) {
+      if ((0, import_yaml2.isSeq)(node)) {
         yield new ParseEvent(EventType.SequenceStart, new SequenceToken(this.fileId, range, void 0));
-      } else if ((0, import_yaml.isMap)(node)) {
+      } else if ((0, import_yaml2.isMap)(node)) {
         yield new ParseEvent(EventType.MappingStart, new MappingToken(this.fileId, range, void 0));
       }
       for (const item of node.items) {
@@ -12511,16 +12619,16 @@ var YamlObjectReader = class _YamlObjectReader {
           yield child;
         }
       }
-      if ((0, import_yaml.isSeq)(node)) {
+      if ((0, import_yaml2.isSeq)(node)) {
         yield new ParseEvent(EventType.SequenceEnd);
-      } else if ((0, import_yaml.isMap)(node)) {
+      } else if ((0, import_yaml2.isMap)(node)) {
         yield new ParseEvent(EventType.MappingEnd);
       }
     }
-    if ((0, import_yaml.isScalar)(node)) {
+    if ((0, import_yaml2.isScalar)(node)) {
       yield new ParseEvent(EventType.Literal, _YamlObjectReader.getLiteralToken(this.fileId, range, node));
     }
-    if ((0, import_yaml.isAlias)(node)) {
+    if ((0, import_yaml2.isAlias)(node)) {
       const resolved = node.resolve(this.doc);
       if (resolved) {
         if (aliasResolutionStack.has(resolved)) {
@@ -12532,7 +12640,7 @@ var YamlObjectReader = class _YamlObjectReader {
       }
       return;
     }
-    if ((0, import_yaml.isPair)(node)) {
+    if ((0, import_yaml2.isPair)(node)) {
       const scalarKey = node.key;
       range = this.getRange(scalarKey);
       const key = scalarKey.value;
@@ -17437,31 +17545,6 @@ var DefinitionValueMode;
   DefinitionValueMode2[DefinitionValueMode2["Key"] = 1] = "Key";
 })(DefinitionValueMode || (DefinitionValueMode = {}));
 
-// node_modules/.pnpm/@actions+languageservice@0.3.61/node_modules/@actions/languageservice/dist/action.js
-function parseActionReference(uses) {
-  if (!uses || uses.startsWith("docker://") || uses.startsWith("./") || uses.startsWith(".\\") || uses.startsWith("$/")) {
-    return void 0;
-  }
-  const [action, ref] = uses.split("@");
-  const [owner, name, ...pathSegments] = action.split(/[\\/]/).filter((s) => s.length > 0);
-  if (!owner || !name) {
-    return void 0;
-  }
-  if (pathSegments.length === 0) {
-    return {
-      owner,
-      name,
-      ref
-    };
-  }
-  return {
-    owner,
-    name,
-    ref,
-    path: pathSegments.join("/")
-  };
-}
-
 // node_modules/.pnpm/@actions+languageservice@0.3.61/node_modules/@actions/languageservice/dist/expression-validation/error-dictionary.js
 var AccessError = class extends Error {
   constructor(message, keyName) {
@@ -17643,7 +17726,7 @@ function addStepUsesFormatError(diagnostics, token) {
 }
 
 // node_modules/.pnpm/@actions+languageservice@0.3.61/node_modules/@actions/languageservice/dist/validate-action-reference.js
-var import_yaml2 = __toESM(require_dist(), 1);
+var import_yaml3 = __toESM(require_dist(), 1);
 var DiagnosticCode = {
   MissingRequiredInputs: "missing-required-inputs"
 };
@@ -17754,7 +17837,7 @@ async function fetchSelfRepositoryActionMetadata(diagnostics, uses, range, confi
     }
   }
   if (content !== void 0) {
-    return (0, import_yaml2.parse)(content);
+    return (0, import_yaml3.parse)(content);
   }
   diagnostics.push({
     severity: DiagnosticSeverity.Error,
@@ -18805,15 +18888,20 @@ function mapSeverity(severity) {
       return "error";
   }
 }
-async function validateFile(filePath) {
+async function validateFile(filePath, options = {}) {
   const content = readFileSync(filePath, "utf8");
-  return validateContent(filePath, content);
+  return validateContent(filePath, content, options);
 }
-async function validateContent(filePath, content) {
+async function validateContent(filePath, content, options = {}) {
   const uri = pathToFileURL(resolve(filePath)).toString();
   clearCacheEntry(uri);
   const document = TextDocument2.create(uri, "yaml", 0, content);
-  const rawDiagnostics = await validate(document);
+  const actionsMetadataProvider = options.offline ? void 0 : options.actionsMetadataProvider ?? createActionsMetadataProvider({ token: options.token });
+  const config = {
+    ...options.fileProvider ? { fileProvider: options.fileProvider } : {},
+    ...actionsMetadataProvider ? { actionsMetadataProvider } : {}
+  };
+  const rawDiagnostics = await validate(document, config);
   const diagnostics = rawDiagnostics.map((diag) => {
     const rawMessage = diag.message;
     const message = typeof rawMessage === "string" ? rawMessage : rawMessage.value;
@@ -18848,6 +18936,7 @@ Usage:
 
 Options:
   --format <type>  Output format: human or json (default: human)
+  --offline        Run in offline mode without fetching remote action metadata
   -h, --help       Show this help message
   -v, --version    Show version
 
@@ -18855,6 +18944,11 @@ If no files are specified, ghadiag checks:
   - .github/workflows/*.{yml,yaml}
   - .github/actions/**/action.{yml,yaml}
   - action.{yml,yaml}
+
+Authentication:
+  In online mode, ghadiag resolves GitHub tokens from GITHUB_TOKEN or GH_TOKEN,
+  falling back to \`gh auth token\`. Without a token, unauthenticated requests
+  are made up to GitHub's public API rate limits.
 `;
 function findDefaultFiles(cwd = process.cwd()) {
   const files = [];
@@ -18895,6 +18989,9 @@ async function main() {
       format: {
         type: "string"
       },
+      offline: {
+        type: "boolean"
+      },
       help: {
         type: "boolean",
         short: "h"
@@ -18927,10 +19024,18 @@ async function main() {
       process.exit(0);
     }
   }
+  const isOffline = values.offline ?? false;
+  const token = isOffline ? void 0 : resolveGitHubToken();
+  const actionsMetadataProvider = isOffline ? void 0 : createActionsMetadataProvider({ token });
+  const validationOptions = {
+    offline: isOffline,
+    token,
+    actionsMetadataProvider
+  };
   const results = await Promise.all(
     targetFiles.map(async (file) => {
       try {
-        return await validateFile(file);
+        return await validateFile(file, validationOptions);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return {

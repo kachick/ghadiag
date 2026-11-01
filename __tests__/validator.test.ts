@@ -149,4 +149,61 @@ runs:
     const messages = result.diagnostics.map((d) => d.message);
     assert.ok(messages.some((m) => m.includes('Required property is missing: shell')));
   });
+
+  it('detects invalid action input when metadata provider returns action definitions', async () => {
+    const yaml = `
+name: Sample
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: some-owner/some-action@v1
+        with:
+          valid_arg: 'hello'
+          invalid_arg: 'world'
+`;
+
+    const mockProvider = {
+      async fetchActionMetadata() {
+        return {
+          name: 'some-action',
+          description: 'A mock action',
+          inputs: {
+            valid_arg: {
+              description: 'A valid input',
+              required: false,
+            },
+          },
+        };
+      },
+    };
+
+    const result = await validateContent('.github/workflows/test.yml', yaml, {
+      actionsMetadataProvider: mockProvider,
+    });
+    assert.equal(result.isValid, false);
+    const messages = result.diagnostics.map((d) => d.message);
+    assert.ok(messages.some((m) => m.includes("Invalid action input 'invalid_arg'")));
+  });
+
+  it('ignores action inputs in offline mode', async () => {
+    const yaml = `
+name: Sample
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: some-owner/some-action@v1
+        with:
+          invalid_arg: 'world'
+`;
+
+    const result = await validateContent('.github/workflows/test.yml', yaml, {
+      offline: true,
+    });
+    assert.equal(result.isValid, true);
+    assert.equal(result.diagnostics.length, 0);
+  });
 });

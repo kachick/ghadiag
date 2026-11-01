@@ -28,7 +28,8 @@
   },
   "dependencies": {
     "@actions/languageservice": "^0.3.61",
-    "vscode-languageserver-textdocument": "^1.0.15"
+    "vscode-languageserver-textdocument": "^1.0.15",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@tsconfig/bases": "^1.0.28",
