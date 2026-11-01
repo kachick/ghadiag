@@ -18946,7 +18946,7 @@ If no files are specified, ghadiag checks:
   - action.{yml,yaml}
 
 Authentication:
-  In online mode, ghadiag resolves GitHub tokens from GITHUB_TOKEN or GH_TOKEN,
+  In online mode, access tokens are resolved from GITHUB_TOKEN or GH_TOKEN,
   falling back to \`gh auth token\`. Without a token, unauthenticated requests
   are made up to GitHub's public API rate limits.
 `;

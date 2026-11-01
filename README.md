@@ -27,22 +27,16 @@ ghadiag --format=json .github/workflows/ci.yml
 
 ## Remote Actions and Authentication
 
-By default, `ghadiag` validates action inputs and required properties against remote actions (e.g. `uses: actions/checkout@v4`).
+Remote action inputs and properties (e.g. `uses: actions/checkout@v7`) are checked by default.
 
-To avoid GitHub API rate limits, `ghadiag` resolves a GitHub access token in this order:
+To avoid GitHub API rate limits, access tokens are resolved in this order:
 
-1. `GITHUB_TOKEN` environment variable
-2. `GH_TOKEN` environment variable
-3. Output of `gh auth token` (when GitHub CLI is installed and logged in)
+1. `GITHUB_TOKEN`
+2. `GH_TOKEN`
+3. `gh auth token` (when GitHub CLI is available)
 
-If no token is found, `ghadiag` falls back to unauthenticated requests within GitHub's public rate limits.
-
-### Privacy and Security
-
-- `ghadiag` only uses read-only access to fetch `action.yml` and `action.yaml` metadata.
-- Tokens are only sent to `api.github.com` in the `Authorization` header.
-- Tokens are never written to disk or logged.
-- Pass `--offline` to disable all network requests and skip token resolution.
+If no token is found, requests fall back to unauthenticated access within public rate limits.
+Pass `--offline` to skip network requests and token resolution.
 
 ## Why ghadiag?
 
