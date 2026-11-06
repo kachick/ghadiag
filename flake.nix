@@ -5,6 +5,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       ...
     }:
@@ -13,6 +14,57 @@
       forAllSystems = lib.genAttrs lib.systems.flakeExposed;
     in
     {
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        rec {
+          ghadiag = pkgs.stdenvNoCC.mkDerivation {
+            pname = "ghadiag";
+            version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
+
+            src = lib.fileset.toSource {
+              root = ./.;
+              fileset = ./dist/cli.js;
+            };
+
+            nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
+
+            dontBuild = true;
+
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p $out/bin $out/libexec/ghadiag
+              cp dist/cli.js $out/libexec/ghadiag/cli.js
+              makeWrapper ${lib.getExe pkgs.nodejs_26} $out/bin/ghadiag \
+                --add-flags "$out/libexec/ghadiag/cli.js"
+
+              runHook postInstall
+            '';
+
+            meta = {
+              description = "A standalone GitHub Actions workflow and action validator powered by official @actions/languageservice";
+              homepage = "https://github.com/kachick/ghadiag";
+              license = lib.licenses.mit;
+              mainProgram = "ghadiag";
+            };
+          };
+
+          default = ghadiag;
+        }
+      );
+
+      apps = forAllSystems (system: rec {
+        ghadiag = {
+          type = "app";
+          program = lib.getExe self.packages.${system}.default;
+          meta = self.packages.${system}.default.meta;
+        };
+        default = ghadiag;
+      });
+
       formatter = forAllSystems (
         system:
         let

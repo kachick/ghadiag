@@ -4,7 +4,13 @@ GitHub Actions validator powered by [@actions/languageservice](https://github.co
 
 ## Installation
 
-Run directly:
+Run directly with Nix:
+
+```bash
+nix run github:kachick/ghadiag
+```
+
+Without Nix:
 
 ```bash
 npx github:kachick/ghadiag
