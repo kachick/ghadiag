@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createActionsMetadataProvider } from '../src/metadata.ts';
+import { createActionsMetadataProvider, createFileProvider } from '../src/metadata.ts';
 
 describe('metadata', () => {
   it('fetches and parses action metadata via custom fetch', async () => {
@@ -92,5 +92,57 @@ description: Action defined with action.yaml
     assert.equal(first?.name, 'Cached Action');
     assert.equal(second?.name, 'Cached Action');
     assert.equal(callCount, 1);
+  });
+
+  it('fetches and caches remote reusable workflow via createFileProvider', async () => {
+    const workflowYaml = `
+name: Reusable
+on:
+  workflow_call:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`;
+
+    let callCount = 0;
+    const customFetch: typeof fetch = async (input, init) => {
+      callCount++;
+      const url = String(input);
+      assert.equal(
+        url,
+        'https://api.github.com/repos/sample-owner/sample-repo/contents/.github/workflows/reusable.yml?ref=main',
+      );
+      const headers = init?.headers as Record<string, string>;
+      assert.equal(headers['Authorization'], 'Bearer test-token');
+      return new Response(workflowYaml, { status: 200 });
+    };
+
+    const fileProvider = createFileProvider({
+      token: 'test-token',
+      customFetch,
+    });
+
+    const ref = {
+      owner: 'sample-owner',
+      repository: 'sample-repo',
+      path: '.github/workflows/reusable.yml',
+      version: 'main',
+    };
+
+    const first = await fileProvider.getFileContent(ref);
+    const second = await fileProvider.getFileContent(ref);
+
+    assert.equal(first.content, workflowYaml);
+    assert.equal(second.content, workflowYaml);
+    assert.equal(callCount, 1);
+  });
+
+  it('resolves local file references from disk via createFileProvider', async () => {
+    const fileProvider = createFileProvider();
+    const file = await fileProvider.getFileContent({ path: '__tests__/fixtures/valid.yml' });
+    assert.equal(file.name, '__tests__/fixtures/valid.yml');
+    assert.ok(file.content.includes('jobs:'));
   });
 });

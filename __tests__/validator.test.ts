@@ -206,4 +206,47 @@ jobs:
     assert.equal(result.isValid, true);
     assert.equal(result.diagnostics.length, 0);
   });
+
+  it('detects invalid and missing inputs on reusable workflow calls via fileProvider', async () => {
+    const reusableYaml = `
+name: Reusable
+on:
+  workflow_call:
+    inputs:
+      required_input:
+        required: true
+        type: string
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "ok"
+`;
+
+    const callerYaml = `
+name: Caller
+on: [push]
+jobs:
+  call-reusable:
+    uses: some-owner/some-repo/.github/workflows/reusable.yml@main
+    with:
+      unknown_input: 'foo'
+`;
+
+    const result = await validateContent('.github/workflows/caller.yml', callerYaml, {
+      fileProvider: {
+        async getFileContent() {
+          return {
+            name: 'reusable.yml',
+            content: reusableYaml,
+          };
+        },
+      },
+    });
+
+    assert.equal(result.isValid, false);
+    const messages = result.diagnostics.map((d) => d.message);
+    assert.ok(messages.some((m) => m.includes('unknown_input')));
+    assert.ok(messages.some((m) => m.includes('required_input')));
+  });
 });

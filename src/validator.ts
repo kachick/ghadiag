@@ -5,7 +5,7 @@ import type { ActionsMetadataProvider, ValidationConfig } from '@actions/languag
 import { validate } from '@actions/languageservice';
 import { clearCacheEntry } from '@actions/languageservice/utils/workflow-cache';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { createActionsMetadataProvider } from './metadata.ts';
+import { createActionsMetadataProvider, createFileProvider } from './metadata.ts';
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info' | 'hint';
 
@@ -72,8 +72,11 @@ export async function validateContent(
     ? undefined
     : (options.actionsMetadataProvider ?? createActionsMetadataProvider({ token: options.token }));
 
+  const fileProvider = options.fileProvider
+    ?? (options.offline ? undefined : createFileProvider({ token: options.token }));
+
   const config: ValidationConfig = {
-    ...(options.fileProvider ? { fileProvider: options.fileProvider } : {}),
+    ...(fileProvider ? { fileProvider } : {}),
     ...(actionsMetadataProvider ? { actionsMetadataProvider } : {}),
   };
 

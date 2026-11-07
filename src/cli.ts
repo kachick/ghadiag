@@ -3,7 +3,7 @@ import { relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import packageJson from '../package.json' with { type: 'json' };
 import { resolveGitHubToken } from './auth.ts';
-import { createActionsMetadataProvider } from './metadata.ts';
+import { createActionsMetadataProvider, createFileProvider } from './metadata.ts';
 import { formatHuman, validateFile, type ValidationOptions, type ValidationResult } from './validator.ts';
 
 const HELP_TEXT = `ghadiag - Validate GitHub Actions workflows and actions
@@ -118,10 +118,12 @@ async function main() {
   const isOffline = values.offline ?? false;
   const token = isOffline ? undefined : resolveGitHubToken();
   const actionsMetadataProvider = isOffline ? undefined : createActionsMetadataProvider({ token });
+  const fileProvider = isOffline ? undefined : createFileProvider({ token });
   const validationOptions: ValidationOptions = {
     offline: isOffline,
     token,
     actionsMetadataProvider,
+    fileProvider,
   };
 
   const results: ValidationResult[] = await Promise.all(

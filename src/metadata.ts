@@ -1,12 +1,94 @@
-import type { ActionsMetadataProvider } from '@actions/languageservice';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import type { ActionsMetadataProvider, ValidationConfig } from '@actions/languageservice';
 import type { ActionMetadata, ActionReference } from '@actions/languageservice/action';
 import { actionIdentifier } from '@actions/languageservice/action';
 import { parse } from 'yaml';
 import packageJson from '../package.json' with { type: 'json' };
 
+export type FileProvider = NonNullable<ValidationConfig['fileProvider']>;
+export type FileReference = Parameters<FileProvider['getFileContent']>[0];
+export type File = Awaited<ReturnType<FileProvider['getFileContent']>>;
+
 export interface ActionMetadataProviderOptions {
   token?: string | undefined;
   customFetch?: typeof fetch;
+}
+
+export interface FileProviderOptions {
+  cwd?: string | undefined;
+  token?: string | undefined;
+  customFetch?: typeof fetch;
+}
+
+/**
+ * Creates a FileProvider that resolves local workflow/action files from disk
+ * and fetches remote reusable workflows from the GitHub REST API.
+ */
+export function createFileProvider(options: FileProviderOptions = {}): FileProvider {
+  const { cwd = process.cwd(), token, customFetch = fetch } = options;
+  const cache = new Map<string, Promise<File>>();
+
+  return {
+    async getFileContent(ref: FileReference): Promise<File> {
+      if (!('repository' in ref)) {
+        const key = `./${ref.path}`;
+        let promise = cache.get(key);
+        if (!promise) {
+          promise = (async () => {
+            const content = await readFile(resolve(cwd, ref.path), 'utf8');
+            return { name: ref.path, content };
+          })();
+          cache.set(key, promise);
+        }
+        return promise;
+      }
+
+      const key = `${ref.owner}/${ref.repository}/${ref.path}@${ref.version}`;
+      let promise = cache.get(key);
+      if (!promise) {
+        promise = fetchRemoteWorkflowFile(ref, token, customFetch);
+        cache.set(key, promise);
+      }
+      return promise;
+    },
+  };
+}
+
+async function fetchRemoteWorkflowFile(
+  ref: Extract<FileReference, { repository: string }>,
+  token?: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<File> {
+  const encodedPath = ref.path
+    .split('/')
+    .filter((segment) => segment.length > 0)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  const url = `https://api.github.com/repos/${encodeURIComponent(ref.owner)}/${
+    encodeURIComponent(ref.repository)
+  }/contents/${encodedPath}?ref=${encodeURIComponent(ref.version)}`;
+
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github.raw+yaml',
+    'User-Agent': `ghadiag/${packageJson.version}`,
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetchFn(url, { headers });
+  if (response.status !== 200) {
+    throw new Error(`Unable to fetch remote workflow (${response.status})`);
+  }
+
+  const content = await response.text();
+  return {
+    name: `${ref.owner}/${ref.repository}/${ref.path}@${ref.version}`,
+    content,
+  };
 }
 
 /**

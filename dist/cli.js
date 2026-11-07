@@ -8452,7 +8452,7 @@ var require_cronstrue = __commonJS({
 
 // src/cli.ts
 import { existsSync, globSync } from "node:fs";
-import { relative, resolve as resolve2 } from "node:path";
+import { relative, resolve as resolve3 } from "node:path";
 import { parseArgs } from "node:util";
 
 // package.json
@@ -8518,6 +8518,10 @@ function resolveGitHubToken() {
   }
 }
 
+// src/metadata.ts
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
 // node_modules/.pnpm/@actions+languageservice@0.3.61/node_modules/@actions/languageservice/dist/action.js
 function parseActionReference(uses) {
   if (!uses || uses.startsWith("docker://") || uses.startsWith("./") || uses.startsWith(".\\") || uses.startsWith("$/")) {
@@ -8551,6 +8555,54 @@ function actionIdentifier(ref) {
 
 // src/metadata.ts
 var import_yaml = __toESM(require_dist(), 1);
+function createFileProvider(options = {}) {
+  const { cwd = process.cwd(), token, customFetch = fetch } = options;
+  const cache = /* @__PURE__ */ new Map();
+  return {
+    async getFileContent(ref) {
+      if (!("repository" in ref)) {
+        const key2 = `./${ref.path}`;
+        let promise2 = cache.get(key2);
+        if (!promise2) {
+          promise2 = (async () => {
+            const content = await readFile(resolve(cwd, ref.path), "utf8");
+            return { name: ref.path, content };
+          })();
+          cache.set(key2, promise2);
+        }
+        return promise2;
+      }
+      const key = `${ref.owner}/${ref.repository}/${ref.path}@${ref.version}`;
+      let promise = cache.get(key);
+      if (!promise) {
+        promise = fetchRemoteWorkflowFile(ref, token, customFetch);
+        cache.set(key, promise);
+      }
+      return promise;
+    }
+  };
+}
+async function fetchRemoteWorkflowFile(ref, token, fetchFn = fetch) {
+  const encodedPath = ref.path.split("/").filter((segment) => segment.length > 0).map((segment) => encodeURIComponent(segment)).join("/");
+  const url = `https://api.github.com/repos/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repository)}/contents/${encodedPath}?ref=${encodeURIComponent(ref.version)}`;
+  const headers = {
+    Accept: "application/vnd.github.raw+yaml",
+    "User-Agent": `ghadiag/${package_default.version}`,
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const response = await fetchFn(url, { headers });
+  if (response.status !== 200) {
+    throw new Error(`Unable to fetch remote workflow (${response.status})`);
+  }
+  const content = await response.text();
+  return {
+    name: `${ref.owner}/${ref.repository}/${ref.path}@${ref.version}`,
+    content
+  };
+}
 function createActionsMetadataProvider(options = {}) {
   const { token, customFetch = fetch } = options;
   const cache = /* @__PURE__ */ new Map();
@@ -8609,7 +8661,7 @@ async function fetchMetadataForAction(action, token, fetchFn = fetch) {
 
 // src/validator.ts
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve as resolve2 } from "node:path";
 import { pathToFileURL } from "node:url";
 
 // node_modules/.pnpm/@actions+expressions@0.3.61/node_modules/@actions/expressions/dist/ast.js
@@ -18893,12 +18945,13 @@ async function validateFile(filePath, options = {}) {
   return validateContent(filePath, content, options);
 }
 async function validateContent(filePath, content, options = {}) {
-  const uri = pathToFileURL(resolve(filePath)).toString();
+  const uri = pathToFileURL(resolve2(filePath)).toString();
   clearCacheEntry(uri);
   const document = TextDocument2.create(uri, "yaml", 0, content);
   const actionsMetadataProvider = options.offline ? void 0 : options.actionsMetadataProvider ?? createActionsMetadataProvider({ token: options.token });
+  const fileProvider = options.fileProvider ?? (options.offline ? void 0 : createFileProvider({ token: options.token }));
   const config = {
-    ...options.fileProvider ? { fileProvider: options.fileProvider } : {},
+    ...fileProvider ? { fileProvider } : {},
     ...actionsMetadataProvider ? { actionsMetadataProvider } : {}
   };
   const rawDiagnostics = await validate(document, config);
@@ -18967,14 +19020,14 @@ function findDefaultFiles(cwd = process.cwd()) {
   }
   const actionFiles = ["action.yml", "action.yaml"];
   for (const actionFile of actionFiles) {
-    if (existsSync(resolve2(cwd, actionFile))) {
+    if (existsSync(resolve3(cwd, actionFile))) {
       files.push(actionFile);
     }
   }
   const seen = /* @__PURE__ */ new Set();
   const result = [];
   for (const file of files) {
-    const abs = resolve2(cwd, file);
+    const abs = resolve3(cwd, file);
     if (!seen.has(abs)) {
       seen.add(abs);
       result.push(relative(cwd, abs));
@@ -19027,10 +19080,12 @@ async function main() {
   const isOffline = values.offline ?? false;
   const token = isOffline ? void 0 : resolveGitHubToken();
   const actionsMetadataProvider = isOffline ? void 0 : createActionsMetadataProvider({ token });
+  const fileProvider = isOffline ? void 0 : createFileProvider({ token });
   const validationOptions = {
     offline: isOffline,
     token,
-    actionsMetadataProvider
+    actionsMetadataProvider,
+    fileProvider
   };
   const results = await Promise.all(
     targetFiles.map(async (file) => {
