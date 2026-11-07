@@ -3,9 +3,11 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { ActionsMetadataProvider, ValidationConfig } from '@actions/languageservice';
 import { validate } from '@actions/languageservice';
+import { isActionDocument } from '@actions/languageservice/utils/document-type';
 import { clearCacheEntry } from '@actions/languageservice/utils/workflow-cache';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { createActionsMetadataProvider, createFileProvider } from './metadata.ts';
+import { validatePermissions } from './permissions.ts';
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info' | 'hint';
 
@@ -96,6 +98,11 @@ export async function validateContent(
       code: diag.code,
     };
   });
+
+  if (!isActionDocument(uri)) {
+    const permissionDiagnostics = await validatePermissions(filePath, content, fileProvider);
+    diagnostics.push(...permissionDiagnostics);
+  }
 
   const hasErrors = diagnostics.some((d) => d.severity === 'error');
 

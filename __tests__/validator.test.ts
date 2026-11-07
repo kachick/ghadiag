@@ -249,4 +249,79 @@ jobs:
     assert.ok(messages.some((m) => m.includes('unknown_input')));
     assert.ok(messages.some((m) => m.includes('required_input')));
   });
+
+  it('detects when a reusable workflow requests higher permissions than the caller job allows', async () => {
+    const reusableYaml = `
+name: Reusable Cleanup
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - run: echo "cleanup"
+`;
+
+    const callerYaml = `
+name: Caller
+on: [push]
+permissions:
+  contents: read
+jobs:
+  remove-old-images:
+    permissions:
+      packages: write
+    uses: some-owner/some-repo/.github/workflows/reusable-cleanup.yml@main
+`;
+
+    const result = await validateContent('.github/workflows/caller.yml', callerYaml, {
+      fileProvider: {
+        async getFileContent() {
+          return {
+            name: 'reusable-cleanup.yml',
+            content: reusableYaml,
+          };
+        },
+      },
+    });
+
+    assert.equal(result.isValid, false);
+    const messages = result.diagnostics.map((d) => d.message);
+    assert.ok(
+      messages.some((m) =>
+        m.includes(
+          "Error calling workflow 'some-owner/some-repo/.github/workflows/reusable-cleanup.yml@main'. The workflow is requesting 'contents: read', but is only allowed 'contents: none'.",
+        )
+      ),
+    );
+  });
+
+  it('detects when a job overrides permissions without contents: read while using actions/checkout', async () => {
+    const workflowYaml = `
+name: Minimize
+on: [pull_request]
+permissions:
+  contents: read
+jobs:
+  minimize:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - run: echo "minimize"
+`;
+
+    const result = await validateContent('.github/workflows/minimize.yml', workflowYaml, {
+      offline: true,
+    });
+
+    assert.equal(result.isValid, false);
+    const messages = result.diagnostics.map((d) => d.message);
+    assert.ok(messages.some((m) => m.includes("Step uses 'actions/checkout' without a custom token")));
+  });
 });

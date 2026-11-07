@@ -88,6 +88,13 @@ Invalid workflows and actions get rejected by GitHub before starting any checks.
 
 `ghadiag` brings the official language service directly to your terminal. LLM agents and developers can run it locally, catch validation errors early, and fix them before pushing code.
 
+### Additional Checks Beyond Upstream
+
+While `ghadiag` primarily acts as a thin wrapper around `@actions/languageservice`, it also includes a few extra checks that are not yet implemented upstream (and are not intended to grow into a large custom rule set):
+
+- **Reusable workflow permission limits**: Checks that a reusable workflow (top-level or jobs) does not request higher `permissions` than what the caller job or workflow allows, preventing startup failures on GitHub.
+- **Job `permissions` overrides with `actions/checkout`**: Checks that when a job overrides `permissions` and omits `contents: read` (resulting in `contents: none`), it does not run `actions/checkout` without a custom `token`.
+
 ## Sunset Plan
 
 This project started in 2024 as an idea in a private repository. Agentic coding now makes maintaining small tools much easier, so it was cleaned up and open-sourced in 2026.

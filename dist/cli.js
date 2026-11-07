@@ -59,10 +59,10 @@ var require_identity = __commonJS({
     var NODE_TYPE = /* @__PURE__ */ Symbol.for("yaml.node.type");
     var isAlias2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === ALIAS;
     var isDocument2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === DOC;
-    var isMap2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === MAP;
+    var isMap3 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === MAP;
     var isPair2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === PAIR;
-    var isScalar3 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR2;
-    var isSeq2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SEQ;
+    var isScalar4 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR2;
+    var isSeq3 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SEQ;
     function isCollection2(node) {
       if (node && typeof node === "object")
         switch (node[NODE_TYPE]) {
@@ -83,7 +83,7 @@ var require_identity = __commonJS({
         }
       return false;
     }
-    var hasAnchor = (node) => (isScalar3(node) || isCollection2(node)) && !!node.anchor;
+    var hasAnchor = (node) => (isScalar4(node) || isCollection2(node)) && !!node.anchor;
     exports.ALIAS = ALIAS;
     exports.DOC = DOC;
     exports.MAP = MAP;
@@ -95,11 +95,11 @@ var require_identity = __commonJS({
     exports.isAlias = isAlias2;
     exports.isCollection = isCollection2;
     exports.isDocument = isDocument2;
-    exports.isMap = isMap2;
+    exports.isMap = isMap3;
     exports.isNode = isNode;
     exports.isPair = isPair2;
-    exports.isScalar = isScalar3;
-    exports.isSeq = isSeq2;
+    exports.isScalar = isScalar4;
+    exports.isSeq = isSeq3;
   }
 });
 
@@ -4207,9 +4207,9 @@ var require_resolve_flow_collection = __commonJS({
     var blockMsg = "Block collections are not allowed within flow collections";
     var isBlock = (token) => token && (token.type === "block-map" || token.type === "block-seq");
     function resolveFlowCollection({ composeNode, composeEmptyNode }, ctx, fc, onError, tag) {
-      const isMap2 = fc.start.source === "{";
-      const fcName = isMap2 ? "flow map" : "flow sequence";
-      const NodeClass = tag?.nodeClass ?? (isMap2 ? YAMLMap.YAMLMap : YAMLSeq.YAMLSeq);
+      const isMap3 = fc.start.source === "{";
+      const fcName = isMap3 ? "flow map" : "flow sequence";
+      const NodeClass = tag?.nodeClass ?? (isMap3 ? YAMLMap.YAMLMap : YAMLSeq.YAMLSeq);
       const coll = new NodeClass(ctx.schema);
       coll.flow = true;
       const atRoot = ctx.atRoot;
@@ -4245,7 +4245,7 @@ var require_resolve_flow_collection = __commonJS({
             offset = props.end;
             continue;
           }
-          if (!isMap2 && ctx.options.strict && utilContainsNewline.containsNewline(key))
+          if (!isMap3 && ctx.options.strict && utilContainsNewline.containsNewline(key))
             onError(
               key,
               // checked by containsNewline()
@@ -4285,7 +4285,7 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap2 && !sep && !props.found) {
+        if (!isMap3 && !sep && !props.found) {
           const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
@@ -4308,7 +4308,7 @@ var require_resolve_flow_collection = __commonJS({
             startOnNewline: false
           });
           if (valueProps.found) {
-            if (!isMap2 && !props.found && ctx.options.strict) {
+            if (!isMap3 && !props.found && ctx.options.strict) {
               if (sep)
                 for (const st of sep) {
                   if (st === valueProps.found)
@@ -4340,7 +4340,7 @@ var require_resolve_flow_collection = __commonJS({
           const pair = new Pair.Pair(keyNode, valueNode);
           if (ctx.options.keepSourceTokens)
             pair.srcToken = collItem;
-          if (isMap2) {
+          if (isMap3) {
             const map = coll;
             if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
               onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
@@ -4356,7 +4356,7 @@ var require_resolve_flow_collection = __commonJS({
           offset = valueNode ? valueNode.range[2] : valueProps.end;
         }
       }
-      const expectedEnd = isMap2 ? "}" : "]";
+      const expectedEnd = isMap3 ? "}" : "]";
       const [ce, ...ee] = fc.end;
       let cePos = offset;
       if (ce?.source === expectedEnd)
@@ -5643,7 +5643,7 @@ var require_cst = __commonJS({
     var FLOW_END = "";
     var SCALAR2 = "";
     var isCollection2 = (token) => !!token && "items" in token;
-    var isScalar3 = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
+    var isScalar4 = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
     function prettyToken(token) {
       switch (token) {
         case BOM:
@@ -5727,7 +5727,7 @@ var require_cst = __commonJS({
     exports.FLOW_END = FLOW_END;
     exports.SCALAR = SCALAR2;
     exports.isCollection = isCollection2;
-    exports.isScalar = isScalar3;
+    exports.isScalar = isScalar4;
     exports.prettyToken = prettyToken;
     exports.tokenType = tokenType;
   }
@@ -6326,7 +6326,7 @@ var require_lexer = __commonJS({
 var require_line_counter = __commonJS({
   "node_modules/.pnpm/yaml@2.9.1/node_modules/yaml/dist/parse/line-counter.js"(exports) {
     "use strict";
-    var LineCounter2 = class {
+    var LineCounter3 = class {
       constructor() {
         this.lineStarts = [];
         this.addNewLine = (offset) => this.lineStarts.push(offset);
@@ -6349,7 +6349,7 @@ var require_line_counter = __commonJS({
         };
       }
     };
-    exports.LineCounter = LineCounter2;
+    exports.LineCounter = LineCounter3;
   }
 });
 
@@ -7257,7 +7257,7 @@ var require_public_api = __commonJS({
         return docs;
       return Object.assign([], { empty: true }, composer$1.streamInfo());
     }
-    function parseDocument2(source, options = {}) {
+    function parseDocument3(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
@@ -7283,7 +7283,7 @@ var require_public_api = __commonJS({
       } else if (options === void 0 && reviver2 && typeof reviver2 === "object") {
         options = reviver2;
       }
-      const doc = parseDocument2(src, options);
+      const doc = parseDocument3(src, options);
       if (!doc)
         return null;
       doc.warnings.forEach((warning) => log.warn(doc.options.logLevel, warning));
@@ -7319,7 +7319,7 @@ var require_public_api = __commonJS({
     }
     exports.parse = parse3;
     exports.parseAllDocuments = parseAllDocuments;
-    exports.parseDocument = parseDocument2;
+    exports.parseDocument = parseDocument3;
     exports.stringify = stringify;
   }
 });
@@ -18925,6 +18925,295 @@ function createInputEdits(missingInputs, stepInfo) {
   }
 }
 
+// src/permissions.ts
+var import_yaml4 = __toESM(require_dist(), 1);
+var LEVEL_RANK = {
+  none: 0,
+  read: 1,
+  write: 2
+};
+function parsePermissionLevel(value) {
+  if (value === "none" || value === "read" || value === "write") {
+    return value;
+  }
+  return void 0;
+}
+function resolvePermissionsNode(node) {
+  if (node === null) {
+    return { defaultLevel: "none", scopes: /* @__PURE__ */ new Map() };
+  }
+  if ((0, import_yaml4.isScalar)(node)) {
+    const val = node.value;
+    if (val === null) {
+      return { defaultLevel: "none", scopes: /* @__PURE__ */ new Map() };
+    }
+    if (val === "read-all") {
+      return { defaultLevel: "read", scopes: /* @__PURE__ */ new Map() };
+    }
+    if (val === "write-all") {
+      return { defaultLevel: "write", scopes: /* @__PURE__ */ new Map() };
+    }
+    return void 0;
+  }
+  if ((0, import_yaml4.isMap)(node)) {
+    const scopes = /* @__PURE__ */ new Map();
+    for (const item of node.items) {
+      if ((0, import_yaml4.isScalar)(item.key) && typeof item.key.value === "string" && (0, import_yaml4.isScalar)(item.value)) {
+        const level = parsePermissionLevel(item.value.value);
+        if (level) {
+          scopes.set(item.key.value, level);
+        }
+      }
+    }
+    return { defaultLevel: "none", scopes };
+  }
+  return void 0;
+}
+function getEffectiveLevel(perms, scope) {
+  return perms.scopes.get(scope) ?? perms.defaultLevel;
+}
+function offsetToPosition(lineCounter, offset) {
+  const pos = lineCounter.linePos(offset);
+  return { line: pos.line, column: pos.col };
+}
+function extractRange(lineCounter, range) {
+  if (!range) {
+    return { line: 1, column: 1, endLine: 1, endColumn: 1 };
+  }
+  const start = offsetToPosition(lineCounter, range[0]);
+  const end = offsetToPosition(lineCounter, range[1]);
+  return {
+    line: start.line,
+    column: start.column,
+    endLine: end.line,
+    endColumn: end.column
+  };
+}
+function parseWorkflowFileReference(ref) {
+  if (ref.startsWith("./") || ref.startsWith("$/")) {
+    return { path: ref.substring(2) };
+  }
+  const atIndex = ref.indexOf("@");
+  if (atIndex === -1) {
+    return void 0;
+  }
+  const remotePath = ref.substring(0, atIndex);
+  const version = ref.substring(atIndex + 1);
+  const segments = remotePath.split("/").filter((s) => s.length > 0);
+  const owner = segments[0];
+  const repository = segments[1];
+  const pathSegments = segments.slice(2);
+  if (!owner || !repository || pathSegments.length === 0 || !version) {
+    return void 0;
+  }
+  const filePath = pathSegments.join("/");
+  if (!filePath.endsWith(".yml") && !filePath.endsWith(".yaml")) {
+    return void 0;
+  }
+  return {
+    owner,
+    repository,
+    path: filePath,
+    version
+  };
+}
+function collectRequiredPermissions(node, lineCounter) {
+  const entries = [];
+  if ((0, import_yaml4.isScalar)(node)) {
+    const r = extractRange(lineCounter, node.range);
+    if (node.value === "read-all") {
+      entries.push({ scope: "*", level: "read", ...r });
+    } else if (node.value === "write-all") {
+      entries.push({ scope: "*", level: "write", ...r });
+    }
+    return entries;
+  }
+  if ((0, import_yaml4.isMap)(node)) {
+    for (const item of node.items) {
+      if ((0, import_yaml4.isScalar)(item.key) && typeof item.key.value === "string" && (0, import_yaml4.isScalar)(item.value)) {
+        const level = parsePermissionLevel(item.value.value);
+        if (level && level !== "none") {
+          const r = extractRange(lineCounter, item.key.range);
+          entries.push({ scope: item.key.value, level, ...r });
+        }
+      }
+    }
+  }
+  return entries;
+}
+async function validatePermissions(filePath, content, fileProvider) {
+  const diagnostics = [];
+  const lineCounter = new import_yaml4.LineCounter();
+  const doc = (0, import_yaml4.parseDocument)(content, { lineCounter });
+  if (!(0, import_yaml4.isMap)(doc.contents)) {
+    return diagnostics;
+  }
+  let topPermsNode;
+  let jobsNode;
+  for (const item of doc.contents.items) {
+    if (!(0, import_yaml4.isScalar)(item.key) || typeof item.key.value !== "string") {
+      continue;
+    }
+    if (item.key.value === "permissions") {
+      topPermsNode = item.value;
+    } else if (item.key.value === "jobs") {
+      jobsNode = item.value;
+    }
+  }
+  const topPerms = topPermsNode !== void 0 ? resolvePermissionsNode(topPermsNode) : void 0;
+  if (!(0, import_yaml4.isMap)(jobsNode)) {
+    return diagnostics;
+  }
+  const reusableChecks = [];
+  for (const jobPair of jobsNode.items) {
+    if (!(0, import_yaml4.isScalar)(jobPair.key) || !(0, import_yaml4.isMap)(jobPair.value)) {
+      continue;
+    }
+    let jobPermsNode;
+    let usesNode;
+    let stepsNode;
+    for (const prop of jobPair.value.items) {
+      if (!(0, import_yaml4.isScalar)(prop.key) || typeof prop.key.value !== "string") {
+        continue;
+      }
+      if (prop.key.value === "permissions") {
+        jobPermsNode = prop.value;
+      } else if (prop.key.value === "uses") {
+        usesNode = prop.value;
+      } else if (prop.key.value === "steps") {
+        stepsNode = prop.value;
+      }
+    }
+    const jobPerms = jobPermsNode !== void 0 ? resolvePermissionsNode(jobPermsNode) : void 0;
+    const effectiveCallerPerms = jobPerms ?? topPerms;
+    if (fileProvider && (0, import_yaml4.isScalar)(usesNode) && typeof usesNode.value === "string" && effectiveCallerPerms) {
+      const usesValue = usesNode.value;
+      const ref = parseWorkflowFileReference(usesValue);
+      if (ref) {
+        const jobKeyRange = extractRange(lineCounter, jobPair.key.range);
+        reusableChecks.push(
+          (async () => {
+            try {
+              const calledFile = await fileProvider.getFileContent(ref);
+              return checkCalledWorkflowPermissions(
+                filePath,
+                usesValue,
+                jobKeyRange,
+                effectiveCallerPerms,
+                calledFile.content
+              );
+            } catch {
+              return [];
+            }
+          })()
+        );
+      }
+    }
+    if (jobPerms && getEffectiveLevel(jobPerms, "contents") === "none" && (0, import_yaml4.isSeq)(stepsNode)) {
+      for (const step of stepsNode.items) {
+        if (!(0, import_yaml4.isMap)(step)) {
+          continue;
+        }
+        let stepUses;
+        let stepUsesRange;
+        let hasCustomToken = false;
+        for (const stepProp of step.items) {
+          if (!(0, import_yaml4.isScalar)(stepProp.key) || typeof stepProp.key.value !== "string") {
+            continue;
+          }
+          if (stepProp.key.value === "uses" && (0, import_yaml4.isScalar)(stepProp.value) && typeof stepProp.value.value === "string") {
+            stepUses = stepProp.value.value;
+            stepUsesRange = stepProp.value.range;
+          } else if (stepProp.key.value === "with" && (0, import_yaml4.isMap)(stepProp.value)) {
+            for (const withProp of stepProp.value.items) {
+              if ((0, import_yaml4.isScalar)(withProp.key) && withProp.key.value === "token") {
+                hasCustomToken = true;
+              }
+            }
+          }
+        }
+        if (stepUses?.startsWith("actions/checkout@") && !hasCustomToken) {
+          const r = extractRange(lineCounter, stepUsesRange);
+          diagnostics.push({
+            filePath,
+            message: "Step uses 'actions/checkout' without a custom token, but job permissions restrict 'contents' to 'none'. Add 'contents: read' to job permissions.",
+            ...r,
+            severity: "error",
+            code: "insufficient-job-permissions"
+          });
+        }
+      }
+    }
+  }
+  const reusableResults = await Promise.all(reusableChecks);
+  for (const res of reusableResults) {
+    diagnostics.push(...res);
+  }
+  return diagnostics;
+}
+function checkCalledWorkflowPermissions(callerFilePath, usesValue, jobKeyRange, callerPerms, calledContent) {
+  const diagnostics = [];
+  const calledLineCounter = new import_yaml4.LineCounter();
+  const calledDoc = (0, import_yaml4.parseDocument)(calledContent, { lineCounter: calledLineCounter });
+  if (!(0, import_yaml4.isMap)(calledDoc.contents)) {
+    return diagnostics;
+  }
+  const requiredEntries = [];
+  for (const item of calledDoc.contents.items) {
+    if (!(0, import_yaml4.isScalar)(item.key) || typeof item.key.value !== "string") {
+      continue;
+    }
+    if (item.key.value === "permissions") {
+      requiredEntries.push(...collectRequiredPermissions(item.value, calledLineCounter));
+    } else if (item.key.value === "jobs" && (0, import_yaml4.isMap)(item.value)) {
+      for (const calledJob of item.value.items) {
+        if (!(0, import_yaml4.isMap)(calledJob.value)) {
+          continue;
+        }
+        for (const prop of calledJob.value.items) {
+          if ((0, import_yaml4.isScalar)(prop.key) && prop.key.value === "permissions") {
+            requiredEntries.push(...collectRequiredPermissions(prop.value, calledLineCounter));
+          }
+        }
+      }
+    }
+  }
+  const reportedScopes = /* @__PURE__ */ new Set();
+  for (const req of requiredEntries) {
+    if (req.scope === "*") {
+      if (LEVEL_RANK[callerPerms.defaultLevel] < LEVEL_RANK[req.level]) {
+        const key = `*:${req.level}`;
+        if (!reportedScopes.has(key)) {
+          reportedScopes.add(key);
+          diagnostics.push({
+            filePath: callerFilePath,
+            message: `Error calling workflow '${usesValue}'. The workflow is requesting '${req.level}-all', which exceeds the caller's allowed permissions.`,
+            ...jobKeyRange,
+            severity: "error",
+            code: "reusable-workflow-permissions"
+          });
+        }
+      }
+      continue;
+    }
+    const allowedLevel = getEffectiveLevel(callerPerms, req.scope);
+    if (LEVEL_RANK[allowedLevel] < LEVEL_RANK[req.level]) {
+      const key = `${req.scope}:${req.level}:${allowedLevel}`;
+      if (!reportedScopes.has(key)) {
+        reportedScopes.add(key);
+        diagnostics.push({
+          filePath: callerFilePath,
+          message: `Error calling workflow '${usesValue}'. The workflow is requesting '${req.scope}: ${req.level}', but is only allowed '${req.scope}: ${allowedLevel}'.`,
+          ...jobKeyRange,
+          severity: "error",
+          code: "reusable-workflow-permissions"
+        });
+      }
+    }
+  }
+  return diagnostics;
+}
+
 // src/validator.ts
 function mapSeverity(severity) {
   switch (severity) {
@@ -18969,6 +19258,10 @@ async function validateContent(filePath, content, options = {}) {
       code: diag.code
     };
   });
+  if (!isActionDocument(uri)) {
+    const permissionDiagnostics = await validatePermissions(filePath, content, fileProvider);
+    diagnostics.push(...permissionDiagnostics);
+  }
   const hasErrors = diagnostics.some((d) => d.severity === "error");
   return {
     filePath,
