@@ -22,7 +22,7 @@ describe('CLI executable', () => {
   });
 
   it('discovers default workflow files with relative paths when no arguments are passed', () => {
-    const stdout = runCli(['--format=json']);
+    const stdout = runCli(['--offline', '--format=json']);
     const parsed = JSON.parse(stdout) as { filePath: string; isValid: boolean }[];
     assert.ok(parsed.some((r) => r.filePath === '.github/workflows/ci.yml' && r.isValid));
   });

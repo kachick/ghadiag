@@ -15,7 +15,9 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "Hello world"
 `;
-    const result = await validateContent('.github/workflows/ci.yml', yaml);
+    const result = await validateContent('.github/workflows/ci.yml', yaml, {
+      offline: true,
+    });
     assert.equal(result.isValid, true);
     assert.equal(result.diagnostics.length, 0);
   });

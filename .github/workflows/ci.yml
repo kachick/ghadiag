@@ -40,6 +40,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Run all checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: pnpm run check
       - name: Make sure there is no diff after build
         run: pnpm run check_no_git_diff
